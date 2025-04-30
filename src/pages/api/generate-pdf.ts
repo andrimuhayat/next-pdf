@@ -1,5 +1,5 @@
-import type { NextApiRequest, NextApiResponse } from 'next';
-import puppeteer, { Browser,Page } from 'puppeteer-core'; // ✅ Import the type properly
+import type {NextApiRequest, NextApiResponse} from 'next';
+import puppeteer, {Browser, Page} from 'puppeteer-core'; // ✅ Import the type properly
 
 const BROWSERLESS_TOKEN = process.env.SECRET_API_KEY;
 const BROWSERLESS_WS = `${process.env.WSS_BROWSERLESS}?token=${BROWSERLESS_TOKEN}`;
@@ -9,46 +9,76 @@ const PDF_TIMEOUT_MS = 30_000;
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
     if (!BROWSERLESS_TOKEN) {
-        return res.status(500).json({ error: 'Missing Browserless token' });
+        return res.status(500).json({error: 'Missing Browserless token'});
     }
 
     if (req.method !== 'POST') {
-        return res.status(405).json({ error: 'Method Not Allowed' });
+        return res.status(405).json({error: 'Method Not Allowed'});
     }
 
-    const { url } = req.body;
+    const {url} = req.body;
     if (typeof url !== 'string' || !/^https?:\/\//.test(url)) {
-        return res.status(400).json({ error: 'Invalid URL format' });
+        return res.status(400).json({error: 'Invalid URL format'});
     }
 
     const keys = Object.keys(req.body);
     if (keys.length !== 1 || !keys.includes('url')) {
-        return res.status(400).json({ error: 'Unexpected request body' });
+        return res.status(400).json({error: 'Unexpected request body'});
     }
 
     let browser: Browser | null = null;
     let clientAborted = false;
 
     try {
-        browser = await puppeteer.connect({ browserWSEndpoint: BROWSERLESS_WS });
+        browser = await puppeteer.connect({browserWSEndpoint: BROWSERLESS_WS});
         const page = await browser.newPage();
 
         const navigation = page.goto(url);
         const domReady = page.waitForFunction('document.readyState === "complete"');
         await Promise.all([navigation, domReady]);
 
-        // Scroll to trigger all lazy-loaded images
+        // Step 1: Scroll to trigger lazy-loaded elements
         await autoScroll(page);
 
-        // Wait until all images finish loading
-        await page.evaluate(async () => {
+        // Step 2: Give time for DOM to react to scroll
+        await page.evaluate(() => new Promise(resolve => setTimeout(resolve, 1000)));
+
+        // Step 3: Reload broken <img> tags by reassigning src
+        await page.evaluate(() => {
             const images = Array.from(document.images);
+            images.forEach((img) => {
+                if (!img.complete || img.naturalHeight === 0) {
+                    const src = img.getAttribute('src');
+                    if (src) img.src = src; // Force reload
+                }
+            });
+        });
+
+        // Step 4: Wait until all <img> and background images finish loading
+        await page.evaluate(async () => {
+            const elements = Array.from(document.querySelectorAll('*'));
+
             await Promise.all(
-                images.map(img => {
-                    if (img.complete) return;
-                    return new Promise(resolve => {
-                        img.onload = img.onerror = resolve;
-                    });
+                elements.map((el) => {
+                    // Handle <img>
+                    if (el.tagName === 'IMG') {
+                        const img = el as HTMLImageElement;
+                        if (img.complete) return;
+                        return new Promise((resolve) => {
+                            img.onload = img.onerror = resolve;
+                        });
+                    }
+
+                    // Handle CSS background-image
+                    const style = window.getComputedStyle(el);
+                    const bgUrlMatch = style.backgroundImage.match(/url\("(.*)"\)/);
+                    if (bgUrlMatch) {
+                        return new Promise((resolve) => {
+                            const bgImg = new Image();
+                            bgImg.src = bgUrlMatch[1];
+                            bgImg.onload = bgImg.onerror = resolve;
+                        });
+                    }
                 })
             );
         });
@@ -58,7 +88,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         );
 
         const pdfBuffer = await Promise.race([
-            page.pdf({ format: 'A4', printBackground: true }),
+            page.pdf({format: 'A4', printBackground: true}),
             timeout,
         ]);
 
@@ -93,12 +123,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             console.log(`✅ PDF streamed in ${Date.now() - start}ms`);
         }
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
         console.error('PDF generation error:', error?.message || error);
         await browser?.close();
         if (!res.headersSent) {
-            res.status(500).json({ error: 'Failed to generate PDF' });
+            res.status(500).json({error: 'Failed to generate PDF'});
         }
     } finally {
         if (!clientAborted && browser) {
@@ -112,23 +142,25 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 }
 
 //  Auto-scroll to bottom to trigger lazy-loaded images
-async function autoScroll(page: Page) {
+async function autoScroll(page: Page): Promise<void> {
     await page.evaluate(async () => {
         await new Promise<void>((resolve) => {
             let totalHeight = 0;
             const distance = 300;
             const timer = setInterval(() => {
+                const scrollHeight = document.body.scrollHeight;
                 window.scrollBy(0, distance);
                 totalHeight += distance;
 
-                if (totalHeight >= document.body.scrollHeight) {
+                if (totalHeight >= scrollHeight) {
                     clearInterval(timer);
                     resolve();
                 }
-            }, 100);
+            }, 300); // Slow scroll to trigger lazy loaders
         });
     });
 }
+
 
 export const config = {
     api: {
