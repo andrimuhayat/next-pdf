@@ -81,6 +81,6 @@ next-pdf/
 ## PUBLIC ACCESS URL
 
 ```
-http://194.233.91.112:30886/api-docs
+https://next-pdf-generator.vercel.app/
 ```
 
