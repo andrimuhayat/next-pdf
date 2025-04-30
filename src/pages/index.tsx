@@ -9,10 +9,10 @@ export default function Home() {
     const [cancelling, setCancelling] = useState(false);
     const controllerRef = useRef<AbortController | null>(null);
 
-    const handleCancel =  async () => {
+    const handleCancel = async () => {
         if (controllerRef.current) {
-            setCancelling(true);            // 👈 Mark cancelling
-            controllerRef.current?.abort('previous generation cancelled'); // 🚫 Abort fetch
+            setCancelling(true);
+            controllerRef.current?.abort();
             controllerRef.current = null;
         }
     };
@@ -33,7 +33,7 @@ export default function Home() {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({url}),
-                signal: controller.signal, // ✅ Important: Attach AbortController
+                signal: controller.signal,
             });
 
             if (!response.ok) {
@@ -90,7 +90,7 @@ export default function Home() {
                 disabled={loading || !url}
                 style={{
                     ...styles.button,
-                    ...(loading || !url ? styles.buttonDisabled : {}), // 👈 add this
+                    ...(loading || !url ? styles.buttonDisabled : {}),
                 }}
             >
                 {loading ? 'Generating...' : 'Generate PDF'}
@@ -98,7 +98,7 @@ export default function Home() {
             {loading && (
                 <button
                     onClick={handleCancel}
-                    disabled={cancelling} // 👈 Disable it if cancelling
+                    disabled={cancelling}
                     style={{
                         ...styles.cancelButton,
                         ...(cancelling ? styles.buttonDisabled : {}),
@@ -109,10 +109,20 @@ export default function Home() {
             )}
 
             {loading && (
-                <div style={styles.loadingContainer}>
-                    <div style={styles.spinner}/>
-                    <p>Loading</p>
-                </div>
+                <>
+                    <style>
+                        {`
+          @keyframes spin {
+            0%   { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+          }
+        `}
+                    </style>
+                    <div style={styles.loadingContainer}>
+                        <div style={{...styles.spinner, animation: 'spin 1s linear infinite'}}/>
+                        <p>Loading...</p>
+                    </div>
+                </>
             )}
 
             {toast && (
@@ -153,7 +163,7 @@ const styles: { [key: string]: React.CSSProperties } = {
         width: '50px',
         height: '50px',
         border: '5px solid #ccc',
-        borderTop: '5px solid #0070f3', // blue top border
+        borderTop: '5px solid #0070f3',
         borderRadius: '50%',
         animation: 'spin 1s linear infinite',
         marginBottom: '10px',
@@ -188,15 +198,15 @@ const styles: { [key: string]: React.CSSProperties } = {
     },
     buttonDisabled: {
         marginLeft: '5px',
-        backgroundColor: '#cccccc',   // gray background
-        cursor: 'not-allowed',         // no pointer on hover
-        color: '#666666',              // dim the text
+        backgroundColor: '#cccccc',
+        cursor: 'not-allowed',
+        color: '#666666',
     },
     cancelButton: {
         marginLeft: '5px',
         padding: '12px 24px',
         fontSize: '1rem',
-        backgroundColor: '#f44336', // Red
+        backgroundColor: '#f44336',
         color: 'white',
         border: 'none',
         borderRadius: '6px',
