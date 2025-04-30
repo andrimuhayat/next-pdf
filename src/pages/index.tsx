@@ -57,6 +57,7 @@ export default function Home() {
 
             setToast({message: 'PDF generated successfully!', type: 'success'});
 
+         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (err: any) {
             if (err.name === 'AbortError') {
                 console.warn('PDF generation cancelled by user');
