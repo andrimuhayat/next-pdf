@@ -37,6 +37,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         const domReady = page.waitForFunction('document.readyState === "complete"');
         await Promise.all([navigation, domReady]);
 
+        // Scroll to trigger all lazy-loaded images
+        await autoScroll(page);
 
         // Wait until all images finish loading
         await page.evaluate(async () => {
@@ -80,8 +82,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             }
         });
 
-        res.write(pdfBuffer);
-
+        for (let offset = 0; offset < pdfBuffer.length; offset += CHUNK_SIZE) {
+            if (clientAborted) return;
+            const chunk = pdfBuffer.slice(offset, offset + CHUNK_SIZE);
+            res.write(chunk);
+        }
 
         if (!clientAborted) {
             res.end();
@@ -103,6 +108,25 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             }
         }
     }
+}
+
+//  Auto-scroll to bottom to trigger lazy-loaded images
+async function autoScroll(page: puppeteer.Page) {
+    await page.evaluate(async () => {
+        await new Promise<void>((resolve) => {
+            let totalHeight = 0;
+            const distance = 300;
+            const timer = setInterval(() => {
+                window.scrollBy(0, distance);
+                totalHeight += distance;
+
+                if (totalHeight >= document.body.scrollHeight) {
+                    clearInterval(timer);
+                    resolve();
+                }
+            }, 100);
+        });
+    });
 }
 
 export const config = {
