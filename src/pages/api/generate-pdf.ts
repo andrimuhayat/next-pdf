@@ -37,13 +37,23 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         const domReady = page.waitForFunction('document.readyState === "complete"');
         await Promise.all([navigation, domReady]);
 
-        // Step 1: Scroll to trigger lazy-loaded elements
-        await autoScroll(page);
+        // Defensive Selector Check
+        const hasLazy = await page.evaluate(() => {
+            try {
+                return document.querySelectorAll('[loading="lazy"], img[data-src], img.lazyload').length > 0;
+            } catch (err) {
+                return false;
+            }
+        });
 
-        // Step 2: Give time for DOM to react to scroll
-        await page.evaluate(() => new Promise(resolve => setTimeout(resolve, 1000)));
+        if (hasLazy) {
+            // Scroll to trigger lazy-loaded elements
+            await autoScroll(page);
+            // Give time for DOM to react to scroll
+            await page.evaluate(() => new Promise(r => setTimeout(r, 1000)));
+        }
 
-        // Step 3: Reload broken <img> tags by reassigning src
+        // Reload broken <img> tags by reassigning src
         await page.evaluate(() => {
             const images = Array.from(document.images);
             images.forEach((img) => {
@@ -54,7 +64,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             });
         });
 
-        // Step 4: Wait until all <img> and background images finish loading
+        // Wait until all <img> and background images finish loading
         await page.evaluate(async () => {
             const elements = Array.from(document.querySelectorAll('*'));
 
@@ -88,7 +98,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         );
 
         const pdfBuffer = await Promise.race([
-            page.pdf({format: 'A4', printBackground: true}),
+            await page.pdf({
+                format: 'A4',
+                printBackground: true,
+                preferCSSPageSize: true,
+                margin: { top: '20px', bottom: '20px', left: '0px', right: '0px' },
+                scale: 0.9,
+            }),
             timeout,
         ]);
 
