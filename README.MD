@@ -1,4 +1,4 @@
-# 📄 Next.js PDF Generator (Streaming) with TypeScript
+# 📄 Next.js PDF Generator with TypeScript
 
 This project is a **PDF generator** built using [Next.js](https://nextjs.org/) and **TypeScript**. It allows users to input a URL, generate a PDF from it (using Puppeteer or a headless backend), and view/download the result — all with a live loading spinner and cancel support.
 
