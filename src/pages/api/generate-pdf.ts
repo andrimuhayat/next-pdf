@@ -1,5 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
-import puppeteer, { Browser } from 'puppeteer-core'; // ✅ Import the type properly
+import puppeteer, { Browser,Page } from 'puppeteer-core'; // ✅ Import the type properly
 
 const BROWSERLESS_TOKEN = process.env.SECRET_API_KEY;
 const BROWSERLESS_WS = `${process.env.WSS_BROWSERLESS}?token=${BROWSERLESS_TOKEN}`;
@@ -112,7 +112,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 }
 
 //  Auto-scroll to bottom to trigger lazy-loaded images
-async function autoScroll(page: puppeteer.Page) {
+async function autoScroll(page: Page) {
     await page.evaluate(async () => {
         await new Promise<void>((resolve) => {
             let totalHeight = 0;
