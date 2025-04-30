@@ -42,6 +42,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             try {
                 return document.querySelectorAll('[loading="lazy"], img[data-src], img.lazyload').length > 0;
             } catch (err) {
+                console.error('Error Lazy querySelectorAll:', err);
                 return false;
             }
         });
