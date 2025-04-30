@@ -1,5 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
-import puppeteer from 'puppeteer-core';
+import puppeteer, { Browser } from 'puppeteer-core'; // ✅ Import the type properly
 
 const BROWSERLESS_TOKEN = process.env.SECRET_API_KEY;
 const BROWSERLESS_WS = `${process.env.WSS_BROWSERLESS}?token=${BROWSERLESS_TOKEN}`;
@@ -26,7 +26,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         return res.status(400).json({ error: 'Unexpected request body' });
     }
 
-    let browser: puppeteer.Browser | null = null;
+    let browser: Browser | null = null;
     let clientAborted = false;
 
     try {
