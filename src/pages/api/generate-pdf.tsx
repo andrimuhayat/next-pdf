@@ -93,6 +93,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             console.log(`✅ PDF streamed in ${Date.now() - start}ms`);
         }
 
+        /* @typescript-eslint/no-explicit-any */
     } catch (error: any) {
         console.error('PDF generation error:', error?.message || error);
         await browser?.close();
@@ -136,3 +137,4 @@ export const config = {
         externalResolver: true,
     },
 };
+

@@ -5,7 +5,6 @@ export default function Home() {
     const [pdfBlobUrl, setPdfBlobUrl] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
     const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
-    const lastProgressRef = useRef(0);
     const [cancelling, setCancelling] = useState(false);
     const controllerRef = useRef<AbortController | null>(null);
 
