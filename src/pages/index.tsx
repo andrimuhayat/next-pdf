@@ -75,7 +75,7 @@ export default function Home() {
 
     return (
         <div style={styles.container}>
-            <h1 style={styles.heading}>PDF Generator (Streaming)</h1>
+            <h1 style={styles.heading}>PDF Generator</h1>
 
             <input
                 type="text"
