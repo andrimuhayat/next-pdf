@@ -1,8 +1,8 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import puppeteer from 'puppeteer-core';
 
-const BROWSERLESS_TOKEN = "SDZMc53RnWoKela96b77d5548222a562a4ef365753";
-const BROWSERLESS_WS = `wss://production-sfo.browserless.io?token=${BROWSERLESS_TOKEN}`;
+const BROWSERLESS_TOKEN = process.env.SECRET_API_KEY;
+const BROWSERLESS_WS = `${process.env.WSS_BROWSERLESS}?token=${BROWSERLESS_TOKEN}`;
 
 const CHUNK_SIZE = 64 * 1024;
 const PDF_TIMEOUT_MS = 30_000;
